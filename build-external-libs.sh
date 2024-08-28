@@ -60,6 +60,77 @@ function build_irx {
     cd "${START_DIR}"
 }
 
+MAKE_OPTIONS=-Wno-dev
+
+function make_ee {
+    START_DIR="${PWD}"
+    DIR="$1"
+    shift
+    cd "$DIR"
+    echo "Building '$DIR' for EE..."
+    "${MAKECMD}" -j "$PROC_NR" "${MAKE_OPTIONS}" "$@" "${XTRA_OPTS}" all install
+    cd "${START_DIR}"
+}
+
+function make_iop {
+    START_DIR="${PWD}"
+    DIR="$1"
+    shift
+    cd "$DIR"
+    echo "Building '$DIR' for IOP..."
+    "${MAKECMD}" -j "$PROC_NR" "${MAKE_OPTIONS}" "$@" "${XTRA_OPTS}" all install
+    cd "${START_DIR}"
+}
+
+function make_irx {
+    START_DIR="${PWD}"
+    DIR="$1"
+    shift
+    cd "$DIR"
+    echo "Building '$DIR' for IRX..."
+    "${MAKECMD}" -j "$PROC_NR" "${MAKE_OPTIONS}" "$@" "${XTRA_OPTS}" all install
+    cd "${START_DIR}"
+}
+
+CONFIGURE_OPTIONS=
+
+function configure_ee {
+    START_DIR="${PWD}"
+    DIR="$1"
+    shift
+    cd "$DIR"
+    echo "Configuring '$DIR' for EE..."
+    CFLAGS="$CFLAGS" ./configure --host=mips64r5900el-ps2-elf --prefix=${PS2SDK}/ports --disable-shared --disable-examples  "${CONFIGURE_OPTIONS}" "$@" "${XTRA_OPTS}" ..
+    "${MAKECMD}" -j "$PROC_NR" all install
+    cd "${START_DIR}"
+}
+
+function configure_iop {
+    START_DIR="${PWD}"
+    DIR="$1"
+    shift
+    cd "$DIR"
+    mkdir -p build_iop
+    cd build_iop
+    echo "Building '$DIR' for IOP..."
+    CFLAGS="$CFLAGS" cmake "${CONFIGURE_OPTIONS}" "$@" "${XTRA_OPTS[@]}" ..
+    "${MAKECMD}" -j "$PROC_NR" all install
+    cd "${START_DIR}"
+}
+
+function configure_irx {
+    START_DIR="${PWD}"
+    DIR="$1"
+    shift
+    cd "$DIR"
+    mkdir -p build_irx
+    cd build_irx
+    echo "Building '$DIR' for IRX..."
+    CFLAGS="$CFLAGS" cmake "${CONFIGURE_OPTIONS}" "$@" "${XTRA_OPTS[@]}" ..
+    "${MAKECMD}" -j "$PROC_NR" all install
+    cd "${START_DIR}"
+}
+
 ## Create a symbolic link for retro-compatibility ps2dev.cmake and ps2dev_iop.cmake
 (cd "${PS2SDK}" && ln -sf "../share/ps2dev.cmake" "ps2dev.cmake" && cd -)
 (cd "${PS2SDK}" && ln -sf "../share/ps2dev_iop.cmake" "ps2dev_iop.cmake" && cd -)
@@ -101,13 +172,11 @@ $FETCH feature/cmake https://github.com/mcmtroffaes/theora.git &
 $FETCH v4.6.0 https://gitlab.com/libtiff/libtiff.git &
 
 # SDL requires to have gsKit
-# We need to clone the whole repo and point to the specific hash for now,
-# till a new version is released after this commit
-$FETCH a08a0ca41a4ab54a7a34a2068fe04e7545cfd0ad https://github.com/Wolf3s/gsKit.git &
+$FETCH v1.3.8 https://github.com/ps2dev/gsKit &
 
 # We need to clone the whole repo and point to the specific hash for now,
 # till a new version is released after this commit
-$FETCH 10c14e78b650e626293aa18155efec54cdee7098 https://github.com/libsdl-org/SDL.git &
+$FETCH release-2.30.7 https://github.com/libsdl-org/SDL.git &
 $FETCH release-2.6.3 https://github.com/libsdl-org/SDL_mixer.git &
 $FETCH release-2.6.3 https://github.com/libsdl-org/SDL_image.git &
 $FETCH release-2.20.2 https://github.com/libsdl-org/SDL_ttf.git &
@@ -128,6 +197,21 @@ $FETCH v1.7.3 https://github.com/hyperrealm/libconfig.git &
 
 $FETCH R_2_6_2 https://github.com/libexpat/libexpat.git &
 
+$FETCH 0.16.4 https://codeberg.org/tenacityteam/libmad.git &
+
+$FETCH 0.16.3 https://codeberg.org/tenacityteam/libid3tag.git &
+
+# We need to clone the whole repo and point to the specific hash for now,
+# till a new version is released after this commit
+$FETCH d6f771cb0e2515dea6a84ece6f9078750bbcc938 https://github.com/billagee/aalib-patched.git &
+$FETCH v3.3 https://github.com/libconfuse/libconfuse &
+$FETCH 1.6.4 https://github.com/fjtrujy/ps2_drivers &
+$FETCH master https://github.com/Wolf3s/libtap.git &
+$FETCH ee-v5.4.6 https://github.com/ps2dev/lua &
+$FETCH master https://github.com/ps2dev/ps2stuff &
+$FETCH master https://github.com/ps2dev/ps2gl &
+$FETCH v1.0.4 https://github.com/israpps/SIOCookie &
+
 # wait for fetch jobs to finish
 wait
 
@@ -139,6 +223,24 @@ tar -xzf build/argtable2-13.tar.gz -C build
 pushd build/jsoncpp
 sed -i -e 's/std::snprintf/snprintf/' include/json/config.h
 popd
+
+# NOTE: aalib
+# Some standard headers could not be found, so patch that out here.
+pushd build/aalib-patched/aalib-1.4rc5
+sed -i '1i#include <stdlib.h>'                            \
+    src/aa{fire,info,lib,linuxkbd,savefont,test,regist}.c &&
+sed -i '1i#include <string.h>'                            \
+    src/aa{kbdreg,moureg,test,regist}.c                   &&
+sed -i '/X11_KBDDRIVER/a#include <X11/Xutil.h>'           \
+    src/aaxkbd.c                                          &&
+sed -i '/rawmode_init/,/^}/s/return;/return 0;/'          \
+    src/aalinuxkbd.c                                      &&
+autoconf
+popd
+
+###
+### Change to the build folder
+###
 cd build
 
 ##
@@ -166,11 +268,12 @@ build_ee jsoncpp -DBUILD_OBJECT_LIBS=OFF -DJSONCPP_WITH_TESTS=OFF -DJSONCPP_WITH
 build_ee theora
 
 # libtiff and libtiff_ps2_addons is mandatory for gsKit
-CFLAGS="-Dlfind=bsearch" build_ee libtiff -DBUILD_SHARED_LIBS=OFF -Dtiff-tools=OFF -Dtiff-tests=OFF
-make all install  -j -C ../libtiff_ps2_addons
+CFLAGS="-Dlfind=bsearch" build_ee libtiff -Dtiff-tools=OFF -Dtiff-tests=OFF
 
 # gsKit is mandatory for SDL
 build_ee gsKit
+# ps2_drivers is mandatory aswell for SDL
+make_ee ps2_drivers
 build_ee SDL -DCMAKE_POSITION_INDEPENDENT_CODE=OFF -DSDL_TESTS=OFF
 build_ee SDL_mixer -DCMAKE_POSITION_INDEPENDENT_CODE=OFF -DSDL2MIXER_DEPS_SHARED=OFF -DSDL2MIXER_MOD_MODPLUG=ON -DSDL2MIXER_MIDI=OFF -DSDL2MIXER_FLAC=OFF -DSDL2MIXER_SAMPLES=OFF
 build_ee SDL_image -DCMAKE_POSITION_INDEPENDENT_CODE=OFF
@@ -188,11 +291,38 @@ build_ee argtable3 -DARGTABLE3_INSTALL_CMAKEDIR="${PS2SDK}/ports/lib/cmake/" -DA
 build_ee libsmb2
 build_ee libsmb2 -DPS2RPC=1
 build_iop libsmb2
-build_irx libsmb2 -DBUILD_IRX=1
+# Disabling for now, as it has some issues with the IRX build in CPU with several cores
+# build_irx libsmb2 -DBUILD_IRX=1
+
+CFLAGS="-DHAVE_NEWLOCALE -DHAVE_USELOCALE -DHAVE_FREELOCALE" build_ee libconfig -DBUILD_EXAMPLES=OFF -DBUILD_TESTS=OFF
 
 CFLAGS="-DHAVE_NEWLOCALE -DHAVE_USELOCALE -DHAVE_FREELOCALE" build_ee libconfig -DBUILD_EXAMPLES=OFF -DBUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF
 
 CFLAGS="-Darc4random_buf=random -DHAVE_GETRANDOM" build_ee libexpat/expat -DEXPAT_BUILD_EXAMPLES=OFF -DEXPAT_BUILD_TESTS=OFF -DEXPAT_SHARED_LIBS=OFF -DEXPAT_BUILD_TOOLS=OFF
+
+build_ee libmad -DBUILD_SHARED_LIBS=OFF 
+build_ee libid3tag -DBUILD_SHARED_LIBS=OFF 
+
+##
+## Build configure projects
+##
+
+autoreconf -vfi zlib/contrib/minizip
+CFLAGS="-DIOAPI_NO_64 -I${PS2SDK}/ports/include" configure_ee zlib/contrib/minizip
+cd libconufse && ./autogen.sh && CFLAGS_FOR_TARGET="-G0 -O2 -gdwarf-2 -gz" configure_ee
+cd ..
+
+##
+## Build makefile projects
+##
+make_ee aalib
+cd build
+make_ee libtap platform=PS2
+make_ee lua platform=PS2
+make_ee ps2stuff
+make_ee ps2gl
+make_ee ps2gl/glut
+make_ee SIOCookie
 
 # Finish
 cd ..
