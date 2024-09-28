@@ -1,4 +1,6 @@
 LIBS := \
+	libconfuse\
+	libtimidity\
 	external_libs\
 	libjpeg_ps2_addons\
 	madplay\
@@ -45,12 +47,23 @@ external_libs:
 clean-external_libs:
 	rm -rf ./build
 
+libconfuse:
+	./fetch.sh v3.3 https://github.com/libconfuse/libconfuse
+	cd build/$@ && ./autogen.sh
+	cd build/$@ && CFLAGS_FOR_TARGET="-G0 -O2 -gdwarf-2 -gz" ./configure --host=mips64r5900el-ps2-elf --prefix=${PS2SDK}/ports --disable-shared --disable-examples
+	$(MAKE) -C build/$@ all
+	$(MAKE) -C build/$@ install
+
+libtimidity:
+	./fetch.sh libtimidity-0.2.7 https://github.com/sezero/libtimidity.git
+	cd build/$@ && autoreconf -vfi
+	cd build/$@ && CFLAGS_FOR_TARGET="-G0 -O2 -gdwarf-2 -gz" ./configure --host=mips64r5900el-ps2-elf --prefix=${PS2SDK}/ports --disable-shared --enable-static --disable-aotest --disable-ao
+	$(MAKE) -C build/$@ all
+	$(MAKE) -C build/$@ install
+
 libjpeg_ps2_addons: external_libs
 	$(MAKE) -C $@ all
 	$(MAKE) -C $@ install
-
-sample-lua:
-	$(MAKE) -C build/lua sample platform=PS2
 
 # depends on SjPCM sound library
 madplay: external_libs
