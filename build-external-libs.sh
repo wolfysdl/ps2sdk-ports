@@ -9,6 +9,7 @@ PROC_NR=$(getconf _NPROCESSORS_ONLN)
 CFLAGS=""
 XTRA_OPTS=""
 MAKECMD=make
+CONFIGCMD=./configure
 OSVER=$(uname)
 if [ ${OSVER:0:5} == MINGW ]; then
   XTRA_OPTS=(. -G"MinGW Makefiles")
@@ -92,41 +93,15 @@ function make_irx {
     cd "${START_DIR}"
 }
 
-CONFIGURE_OPTIONS=
+CONFIGURE_OPTIONS=(--host=mips64r5900el-ps2-elf --prefix=${PS2SDK}/ports --disable-shared --disable-examples)
 
-function configure_ee {
+function configure_ps2 {
     START_DIR="${PWD}"
     DIR="$1"
     shift
     cd "$DIR"
     echo "Configuring '$DIR' for EE..."
-    CFLAGS="$CFLAGS" ./configure --host=mips64r5900el-ps2-elf --prefix=${PS2SDK}/ports --disable-shared --disable-examples  "${CONFIGURE_OPTIONS}" "$@" "${XTRA_OPTS}" ..
-    "${MAKECMD}" -j "$PROC_NR" all install
-    cd "${START_DIR}"
-}
-
-function configure_iop {
-    START_DIR="${PWD}"
-    DIR="$1"
-    shift
-    cd "$DIR"
-    mkdir -p build_iop
-    cd build_iop
-    echo "Building '$DIR' for IOP..."
-    CFLAGS="$CFLAGS" cmake "${CONFIGURE_OPTIONS}" "$@" "${XTRA_OPTS[@]}" ..
-    "${MAKECMD}" -j "$PROC_NR" all install
-    cd "${START_DIR}"
-}
-
-function configure_irx {
-    START_DIR="${PWD}"
-    DIR="$1"
-    shift
-    cd "$DIR"
-    mkdir -p build_irx
-    cd build_irx
-    echo "Building '$DIR' for IRX..."
-    CFLAGS="$CFLAGS" cmake "${CONFIGURE_OPTIONS}" "$@" "${XTRA_OPTS[@]}" ..
+    "${CONFIGCMD}" "${CONFIGURE_OPTIONS}"
     "${MAKECMD}" -j "$PROC_NR" all install
     cd "${START_DIR}"
 }
@@ -305,8 +280,8 @@ build_ee libid3tag -DBUILD_SHARED_LIBS=OFF
 ##
 
 autoreconf -vfi zlib/contrib/minizip
-CFLAGS="-DIOAPI_NO_64 -I${PS2SDK}/ports/include" configure_ee zlib/contrib/minizip
-cd libconufse && ./autogen.sh && CFLAGS_FOR_TARGET="-G0 -O2 -gdwarf-2 -gz" configure_ee
+CFLAGS="-DIOAPI_NO_64 -I${PS2SDK}/ports/include" configure_ps2 zlib/contrib/minizip
+cd libconufse && ./autogen.sh && CFLAGS_FOR_TARGET="-G0 -O2 -gdwarf-2 -gz" configure_ps2
 cd ..
 
 ##
