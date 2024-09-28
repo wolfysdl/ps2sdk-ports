@@ -293,10 +293,7 @@ build_ee libsmb2 -DPS2RPC=1
 build_iop libsmb2
 # Disabling for now, as it has some issues with the IRX build in CPU with several cores
 # build_irx libsmb2 -DBUILD_IRX=1
-
 CFLAGS="-DHAVE_NEWLOCALE -DHAVE_USELOCALE -DHAVE_FREELOCALE" build_ee libconfig -DBUILD_EXAMPLES=OFF -DBUILD_TESTS=OFF
-
-CFLAGS="-DHAVE_NEWLOCALE -DHAVE_USELOCALE -DHAVE_FREELOCALE" build_ee libconfig -DBUILD_EXAMPLES=OFF -DBUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF
 
 CFLAGS="-Darc4random_buf=random -DHAVE_GETRANDOM" build_ee libexpat/expat -DEXPAT_BUILD_EXAMPLES=OFF -DEXPAT_BUILD_TESTS=OFF -DEXPAT_SHARED_LIBS=OFF -DEXPAT_BUILD_TOOLS=OFF
 
