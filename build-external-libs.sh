@@ -186,6 +186,7 @@ $FETCH ee-v5.4.6 https://github.com/ps2dev/lua &
 $FETCH master https://github.com/ps2dev/ps2stuff &
 $FETCH master https://github.com/ps2dev/ps2gl &
 $FETCH v1.0.4 https://github.com/israpps/SIOCookie &
+$FETCH v1.91.2 https://github.com/ocornut/imgui.git
 
 # wait for fetch jobs to finish
 wait
@@ -295,6 +296,7 @@ make_ee ps2stuff
 make_ee ps2gl
 make_ee ps2gl/glut
 make_ee SIOCookie
+make_ee ../imgui
 
 # Finish
 cd ..

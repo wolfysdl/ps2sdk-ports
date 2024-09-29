@@ -39,6 +39,9 @@ sample-aalib:
 sample-lua:
 	$(MAKE) -C build/lua sample platform=PS2
 
+sample-imgui:
+	$(MAKE) -C imgui/ sample all
+
 external_libs:
 	./build-external-libs.sh
 
