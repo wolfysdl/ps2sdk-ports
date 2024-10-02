@@ -92,8 +92,6 @@ function make_irx {
     cd "${START_DIR}"
 }
 
-CONFIGURE_OPTIONS=(--host=mips64r5900el-ps2-elf --prefix=${PS2SDK}/ports --disable-shared --disable-examples)
-
 ## Create a symbolic link for retro-compatibility ps2dev.cmake and ps2dev_iop.cmake
 (cd "${PS2SDK}" && ln -sf "../share/ps2dev.cmake" "ps2dev.cmake" && cd -)
 (cd "${PS2SDK}" && ln -sf "../share/ps2dev_iop.cmake" "ps2dev_iop.cmake" && cd -)
